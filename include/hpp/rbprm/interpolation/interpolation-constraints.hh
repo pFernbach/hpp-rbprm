@@ -40,8 +40,8 @@ namespace interpolation {
     template<class Helper_T>
     void CreateContactConstraints(const State& from, const State& to);
 
-    //template<class Helper_T, typename Reference>
-    //void CreateComConstraint(Helper_T& helper, const Reference& ref, const fcl::Vec3f& initTarget=fcl::Vec3f());
+    template<class Helper_T, typename Reference>
+    void CreateComConstraint(Helper_T& helper, const Reference& ref, const fcl::Vec3f& initTarget=fcl::Vec3f());
 
     template<class Helper_T, typename Reference>
     void CreateEffectorConstraint(Helper_T& helper, const Reference& ref,  const pinocchio::Frame effectorJoint, const fcl::Vec3f& initTarget=fcl::Vec3f());
@@ -85,21 +85,16 @@ namespace interpolation {
         /// \mathbf{rhs} = \mathbf{ref} (a + u (b-a))
         /// \f]
         virtual void operator() (constraints::ImplicitPtr_t eq,
-                               const constraints::value_type& normalized_input, pinocchio::ConfigurationOut_t /*conf*/) const
+                               const constraints::value_type& normalized_input,
+                                 pinocchio::ConfigurationOut_t /*conf*/,
+                                 const core::ConfigProjectorPtr_t& proj) const
         {
           const std::pair<core::value_type, core::value_type>& tR (ref_->timeRange());
           constraints::value_type unNormalized = (tR.second-tR.first)* normalized_input + tR.first;
           bool success;
-          if(times_ten_)
-          {
-              eq->rightHandSide(ref_->operator ()(unNormalized,success).head(dim_)); // * (10000) ;
-              assert(success && "path operator () did not succeed");
-          }
-          else
-          {
-            eq->rightHandSide(ref_->operator ()(unNormalized,success).head(dim_)) ;
-            assert(success && "path operator () did not succeed");
-          }
+          Configuration_t rhs = ref_->operator ()(unNormalized,success).head(dim_);
+          assert(success && "path operator () did not succeed");
+          proj->rightHandSide(eq, rhs);
         }
         /// Reference path of the right hand side of the constraint
         const Reference ref_;
@@ -114,7 +109,7 @@ namespace interpolation {
     typedef constraints::SymbolicFunction<s_t>::Ptr_t PointComFunctionPtr_t;
 
     template<class Helper_T, typename Reference>
-    void CreateComConstraint(Helper_T& helper, const Reference &ref, const fcl::Vec3f& initTarget=fcl::Vec3f())
+    void CreateComConstraint(Helper_T& helper, const Reference &ref, const fcl::Vec3f& initTarget)
     {
         pinocchio::DevicePtr_t device = helper.rootProblem_->robot();
         //constraints::ComparisonType equals = constraints::Equality;
@@ -285,13 +280,15 @@ namespace interpolation {
         /// \f]
         /// where \f$\mathbf{M}\f$ is the method provided to the constructor.
         void operator ()(constraints::ImplicitPtr_t eq,
-                         const constraints::value_type& normalized_input, pinocchio::ConfigurationOut_t /*conf*/) const
+                         const constraints::value_type& normalized_input,
+                         pinocchio::ConfigurationOut_t /*conf*/,
+                         const core::ConfigProjectorPtr_t& proj) const
         {
             const std::pair<core::value_type, core::value_type>& tR (ref_->timeRange());
             bool success;
             // maps from interval [0,1] to definition interval.
             constraints::value_type unNormalized = (tR.second-tR.first)* normalized_input + tR.first;
-            eq->rightHandSide( method_->operator ()((ref_->operator ()(unNormalized,success))).vector());
+            proj->rightHandSide(eq, method_->operator ()((ref_->operator ()(unNormalized,success))).vector());
             assert(success && "path operator () did not succeed");
         }
 

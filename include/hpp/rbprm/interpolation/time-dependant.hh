@@ -21,6 +21,7 @@
 
 # include <hpp/rbprm/config.hh>
 # include <hpp/constraints/implicit.hh>
+# include <hpp/core/config-projector.hh>
 # include <vector>
 
 namespace hpp {
@@ -32,7 +33,8 @@ namespace interpolation {
         /// Compute and set right hand side of constraint
         /// \param eq Implicit constraint,
         /// \param input real valued parameter between 0 and 1.
-        virtual void operator() (constraints::ImplicitPtr_t eq, const constraints::value_type& input, pinocchio::ConfigurationOut_t conf)
+        virtual void operator() (constraints::ImplicitPtr_t eq, const constraints::value_type& input,
+                                 pinocchio::ConfigurationOut_t conf, const core::ConfigProjectorPtr_t& proj)
         const = 0;
     };
     typedef boost::shared_ptr <const RightHandSideFunctor> RightHandSideFunctorPtr_t;
@@ -51,9 +53,10 @@ namespace interpolation {
     {
         /// Set time varying right hand side
         /// \param s time value in interval [0,1],
-        void operator() (const constraints::value_type s, pinocchio::ConfigurationOut_t conf) const
+        void operator() (const constraints::value_type s, pinocchio::ConfigurationOut_t conf,
+                         const core::ConfigProjectorPtr_t& proj) const
         {
-            (*rhsFunc_) (eq_, s, conf);
+            (*rhsFunc_) (eq_, s, conf, proj);
         }
 
         /// Constructor

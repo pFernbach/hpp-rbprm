@@ -84,7 +84,7 @@ namespace hpp {
     {
         if (constraints() && constraints()->configProjector ())
         {
-            UpdateConstraints(configuration, tds_, pathDofRank_);
+            UpdateConstraints(configuration, tds_, pathDofRank_, constraints()->configProjector ());
         }
     }
 
@@ -106,12 +106,13 @@ namespace hpp {
                 u = 0;
             else
                 u = (param - timeRange ().first) / (timeRange ().second - timeRange().first);
+            //device_->configSpace()->interpolate(initial_,end_,u,result);
             pinocchio::interpolate (device_, initial_, end_, u, result);
             pinocchio::value_type dof = ComputeExtraDofValue(pathDofRank_,initial_, end_, u);
             result[pathDofRank_] = dof;
         }
         updateConstraints(result);
-        return true;
+        return constraints()->apply (result);
     }
 
     PathPtr_t TimeConstraintPath::extract (const interval_t& subInterval) const

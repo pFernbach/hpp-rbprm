@@ -58,13 +58,14 @@ namespace hpp {
     }
 
     inline void UpdateConstraints(core::ConfigurationOut_t configuration,
-                                  const T_TimeDependant& tds, const std::size_t pathDofRank)
+                                  const T_TimeDependant& tds, const std::size_t pathDofRank,
+                                  const core::ConfigProjectorPtr_t& proj)
     {
         const core::value_type y = configuration[pathDofRank];
         for (CIT_TimeDependant cit = tds.begin ();
             cit != tds.end (); ++cit)
         {
-            (*cit)(y, configuration);
+            (*cit)(y, configuration, proj);
         }
     }
     }
