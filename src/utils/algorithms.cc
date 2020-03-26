@@ -21,14 +21,32 @@ namespace geom
   }
   BVHModelOBConst_Ptr_t GetModel(const hpp::pinocchio::CollisionObjectConstPtr_t object,hpp::pinocchio::DeviceData &deviceData)
   {
-    assert(object->fcl()->collisionGeometry()->getNodeType() == fcl::BV_OBBRSS);
-    const BVHModelOBConst_Ptr_t model = boost::static_pointer_cast<const hpp::fcl::BVHModel<hpp::fcl::OBBRSS> >(object->fcl()->collisionGeometry());
-    assert(model->getModelType() == hpp::fcl::BVH_MODEL_TRIANGLES);
+    //std::cout<<"Node type = "<<object->fcl()->collisionGeometry()->getNodeType()<<std::endl;
+    //std::cout<<"start getModel()"<<std::endl;
+    assert(object->fcl()->collisionGeometry()->getNodeType() == fcl::BV_OBBRSS
+           || object->fcl()->collisionGeometry()->getNodeType() == fcl::GEOM_CONVEX);
+    //std::cout<<"cast :"<<std::endl;
+    //std::cout<<"cast done."<<std::endl;
     // todo avoid recopy, but if we keep the same ptr the geometry is changed
-    const BVHModelOBConst_Ptr_t modelTransform (new BVHModelOB(*model));
-    for(int i = 0 ; i < model->num_vertices ; i++){
-      modelTransform->vertices[i] = object->fcl(deviceData)->getTransform().transform(model->vertices[i]);
+    BVHModelOBConst_Ptr_t modelTransform;
+    if (object->fcl()->collisionGeometry()->getNodeType() == fcl::BV_OBBRSS){
+      const BVHModelOBConst_Ptr_t model = boost::static_pointer_cast<const BVHModelOB >(object->fcl()->collisionGeometry());
+      modelTransform = boost::make_shared<const BVHModelOB>(*model);
+    }else if (object->fcl()->collisionGeometry()->getNodeType() == fcl::GEOM_CONVEX){
+      //const boost::shared_ptr<const hpp::fcl::ConvexBase> model = boost::static_pointer_cast<const hpp::fcl::ConvexBase >(object->fcl()->collisionGeometry());
+      //modelTransform = boost::static_pointer_cast<const BVHModelOB >(boost::make_shared<const hpp::fcl::ConvexBase>(*model));
+    }else{
+      throw std::invalid_argument("Collision geometry should be either BV_OBBRSS or GEOM_CONVEX");
     }
+    assert(modelTransform->getModelType() == hpp::fcl::BVH_MODEL_TRIANGLES);
+    //std::cout<<"copy done."<<std::endl;
+    for(int i = 0 ; i < modelTransform->num_vertices ; i++){
+      //std::cout<<"for "<<i<<std::endl;
+      modelTransform->vertices[i] = object->fcl(deviceData)->getTransform().transform(modelTransform->vertices[i]);
+      //std::cout<<"for "<<i<<"done"<<std::endl;
+
+    }
+    //std::cout<<"end getModel()"<<std::endl;
     return modelTransform;
   }
 
@@ -640,6 +658,7 @@ namespace geom
     // compute plane equation (normal, point inside the plan)
     Point P0;
     computePlanEquation(plane,Pn,P0);
+    //TODO : use ConvexShape, and use neighbor / points for polygone instead (or make 2 methods)
     for(int i = 0 ; i < polygone->num_tris ; i++){ // FIXME : can test 2 times the same line (in both triangles), avoid this ?
       //hppDout(info,"triangle : "<<i);
       for(int j = 0 ; j < 3 ; j++){

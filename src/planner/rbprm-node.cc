@@ -51,7 +51,9 @@ bool computeIntersectionSurface(const core::CollisionValidationReportPtr_t repor
     geom::BVHModelOBConst_Ptr_t model_env =  geom::GetModel(obj_env,deviceData);
 
     hppStartBenchmark (COMPUTE_INTERSECTION);
+    //std::cout<<"compute intersection"<<std::endl;
     geom::T_Point plane = geom::intersectPolygonePlane(model_rom,model_env,pn);
+    //std::cout<<"compute intersection done."<<std::endl;
     // plane contains a list of points : the intersections between model_rom and the infinite plane defined by model_env.
     // but they may not be contained inside the shape defined by model_env
     hppStopBenchmark (COMPUTE_INTERSECTION);
